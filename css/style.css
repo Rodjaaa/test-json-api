@@ -1,0 +1,27 @@
+.json-row{
+	margin:0px 15px !important;
+}
+.json-col-1 {
+	width:20% !important;
+	float:left;
+	padding:5px;
+}
+.json-col-2{
+	width:70% !important;
+	float:left;
+	padding:5px;
+}
+.json-col-3{
+	width:10% !important;
+	float:left;
+	padding:5px;
+}
+.img-responsive{
+	display:block;
+	max-width:100%;
+	height:auto;
+}
+.json-span{
+	float:left;
+	padding:0px 5px;
+}
