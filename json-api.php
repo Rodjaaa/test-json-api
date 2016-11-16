@@ -3,7 +3,7 @@
  * Plugin Name: JSON Api
  * Description: Test for Nolte
  * Author: Nikola Djordjevic
- * Author URI: http://github.com/airesvsg
+ * Author URI: https://github.com/Rodjaaa
  * Version: 0.0.1
  */
 if ( ! defined( 'ABSPATH' ) ) {
