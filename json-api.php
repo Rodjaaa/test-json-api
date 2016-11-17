@@ -19,6 +19,7 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			$this->export_json();
 		}
 		public function meta_fields(){
+			//Returning an array of metaboxes needed
 			return array(
 					'poster_url' => array(
 										'id' => 'poster_url', 
@@ -39,6 +40,7 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 						);
 		}
 		private function meta_fields_as_array($prefix = ""){
+			//Helper function for metaboxes
 			$meta_array = array();
 			foreach($this->meta_fields() as $k=>$v){
 				$meta_array[] = $prefix.$k;
@@ -46,30 +48,27 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			return $meta_array;
 		}
 		public function add_cpt(){
+			//Init CPT 'movies'
 			add_action( 'init', array ( $this, 'cpt' ) );			
 		}
 		private function add_meta(){
+			//Adds metaboxes to CPT and adds save and display on post functions
 			add_action('add_meta_boxes', array( $this, 'metaboxes') );
 			add_action('save_post', array( $this, 'save') );
 			add_action('the_content', array($this, 'display_meta') );
 		}
 		public function add_scode(){
-			//add_action( 'pre_get_posts', array( $this, 'add_movies_to_query') );
+			//Add shortcode 
 			add_shortcode( 'list-movies', array($this, 'shortcode_render') );
 			add_action( 'wp_enqueue_scripts', array( $this, 'register_shortcode_styles' ) );
 		}
 		private function export_json(){
+			//Registering functions and endpoints for exporting json on /movie.json
 			add_action( 'init', array($this, 'json_rewrite') ); 
 			add_action( 'template_redirect', array( $this, 'json_data') );
-		}
-		public function add_movies_to_query($query){
-			
-			if ( is_home() && $query->is_main_query() )
-				$query->set( 'post_type', array( 'post', 'movies' ) );
-			
-			return $query;
-		}
+		}		
 		public function shortcode_render(){
+			//Renders a short code
 			$output = '';
 			$args = array(
 				'post_type'      => 'movies',
@@ -96,12 +95,15 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 							;
 			endwhile;
 			else :
+				// If there is no 'movies' 
 				$output = 'no movies';
+				// Styling needed
 			endif;
 			return '<div class="json-row">'. $output. '</div>';
 		}
 		
 		public function cpt(){
+			// Register a CPT
 			$labels = array(
 				'name' => _x( 'Movies json', 'movies' ),
 				'singular_name' => _x( 'Movies json', 'movies' ),
@@ -140,13 +142,15 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			register_post_type( 'movies', $args );
 		}
 		public function metaboxes($post_type){
+			// Adding metaboxes from array defined in meta_fields()
 			if ($post_type == 'movies'){
-			foreach($this->meta_fields() as $field){
-				add_meta_box('movies_meta_'.$field['id'], $field['title'], array($this,'render'), 'movies', 'normal', 'high');
-			}
+				foreach($this->meta_fields() as $field){
+					add_meta_box('movies_meta_'.$field['id'], $field['title'], array($this,'render'), 'movies', 'normal', 'high');
+				}
 			}
 		}
 		public function render($post, $args){
+			// Render a metaboxes
 			wp_nonce_field('meta_nonce_check', 'meta_nonce_check_value');
 			switch($args['id']){
 				case 'movies_meta_poster_url':
@@ -186,13 +190,14 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			}
 		}
 		public function save($post_id){
+			// Saving data
 			global $post;
-			 $nonce = $_POST['meta_nonce_check_value'];
+			$nonce = $_POST['meta_nonce_check_value'];
 			
-			// Verify that the nonce is valid.
+			
 			if (!wp_verify_nonce($nonce, 'meta_nonce_check'))
 				return $post_id;
-			// Is the user allowed to edit the post or page?
+			
 			if ( !current_user_can( 'edit_post', $post->ID ))
 				return $post->ID;			
 			$metas = array();
@@ -203,19 +208,20 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 					$metas[$k] = $v;										
 			}	
 			
-			foreach ($metas as $key => $value) { // Cycle through the $events_meta array!
-				if( $post->post_type == 'revision' ) return; // Don't store custom data twice
-				$value = implode(',', (array)$value); // If $value is an array, make it a CSV (unlikely)
-				if(get_post_meta($post->ID, $key, FALSE)) { // If the custom field already has a value
+			foreach ($metas as $key => $value) { 
+				if( $post->post_type == 'revision' ) return; 
+				$value = implode(',', (array)$value); 
+				if(get_post_meta($post->ID, $key, FALSE)) { 
 					update_post_meta($post->ID, $key, $value);
-				} else { // If the custom field doesn't have a value
+				} else { 
 					add_post_meta($post->ID, $key, $value);
 				}
 				
-				if(!$value) delete_post_meta($post->ID, $key); // Delete if blank
+				if(!$value) delete_post_meta($post->ID, $key);
 			}
 		}
 		public function display_meta($content) {
+			// Display metas on post
 			global $post;			
 			if($post->post_type !== 'movies')	
 				return $content;
@@ -243,6 +249,7 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			return $output;
 		}
 		public function json_data($post){
+			// Export json
 			global $wp_query;
 			
 			$movie_tag = $wp_query->get( 'pagename' );
@@ -273,7 +280,7 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			endwhile; wp_reset_postdata(); else:
 				$movie_data = 'None';
 			endif;
-			header( "HTTP/1.1 200 OK" );
+			header( "HTTP/1.1 200 OK" ); // it is returning 404 even if there is data
 			wp_send_json( array( 'data'=>$movie_data) );
 			
 		}
@@ -282,6 +289,7 @@ if ( ! class_exists( 'JSON_Api' ) ) {
 			add_rewrite_rule( 'movies.json/([^&]+)/?', 'index.php?movies.json=$matches[1]', 'top' );
 		}
 		public function register_shortcode_styles(){
+			// Add CSS style
 			wp_register_style('styles-json', plugin_dir_url( __FILE__ ) . 'css/style.css');
 			wp_enqueue_style( 'styles-json' );
 		}
